@@ -208,6 +208,12 @@ createSnow();
 createBigGifts();
 createSanta();
 
+if (state === 'PHOTO' && santaMesh) {
+    const a = time * 0.6;
+    santaMesh.position.x = Math.sin(a) * 20;
+    santaMesh.position.z = Math.cos(a) * 20;
+    santaMesh.position.y = 10 + Math.sin(time * 2) * 2;
+}
 
 
 
@@ -342,27 +348,50 @@ function createSnow() {
         }
 
         function createPhotos() {
-  const geo = new THREE.PlaneGeometry(8, 8);
-  const borderGeo = new THREE.PlaneGeometry(9, 9);
-  const borderMat = new THREE.MeshBasicMaterial({ color: 0xFFD700 });
+    const imgGeo = new THREE.PlaneGeometry(8, 8);
+    const frameGeo = new THREE.PlaneGeometry(9.5, 9.5);
 
-  for (let i = 0; i < 5; i++) {
-    const mat = new THREE.MeshBasicMaterial({
-      map: photoTextures[i],
-      side: THREE.DoubleSide
-    });
+    for (let i = 0; i < 5; i++) {
 
-    const mesh = new THREE.Mesh(geo, mat);
+        // Ảnh
+        const imgMat = new THREE.MeshBasicMaterial({
+            map: photoTextures[i],
+            transparent: true
+        });
+        const imgMesh = new THREE.Mesh(imgGeo, imgMat);
 
-    const border = new THREE.Mesh(borderGeo, borderMat);
-    border.position.z = -0.01; // 👈 FIX
-    mesh.add(border);
+        // Frame vàng
+        const frameMat = new THREE.MeshBasicMaterial({
+            color: 0xFFD700,
+            transparent: true,
+            opacity: 0.85
+        });
+        const frameMesh = new THREE.Mesh(frameGeo, frameMat);
+        frameMesh.position.z = -0.05;
 
-    mesh.visible = false;
-    mesh.scale.set(0, 0, 0);
-    scene.add(mesh);
-    photoMeshes.push(mesh);
-  }
+        // Glow phía sau
+        const glowMat = new THREE.SpriteMaterial({
+            map: textures.gold,
+            color: 0xFFD700,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+        const glow = new THREE.Sprite(glowMat);
+        glow.scale.set(14, 14, 1);
+        glow.position.z = -0.2;
+
+        const group = new THREE.Group();
+        group.add(glow);
+        group.add(frameMesh);
+        group.add(imgMesh);
+
+        group.visible = false;
+        group.scale.set(0, 0, 0);
+
+        scene.add(group);
+        photoMeshes.push(group);
+    }
 }
 
         function createDecorations() {
@@ -493,12 +522,24 @@ if (santaMesh) {
 
                     if (z > maxZ) { maxZ = z; bestIdx = i; }
                     
-                    if (z > 5) { 
-                        const distScale = 1.0 + (z / CONFIG.photoOrbitRadius) * 0.8; 
-                        mesh.scale.lerp(new THREE.Vector3(distScale, distScale, distScale), 0.1);
-                    } else {
-                        mesh.scale.lerp(new THREE.Vector3(0.6, 0.6, 0.6), 0.1);
-                    }
+                    if (z > maxZ - 2) {
+    // Ảnh đang được focus
+    const pulse = 1 + Math.sin(time * 4) * 0.08;
+    mesh.scale.lerp(
+        new THREE.Vector3(1.4 * pulse, 1.4 * pulse, 1.4),
+        0.12
+    );
+
+    // Lắc nhẹ cho sinh động
+    mesh.rotation.z = Math.sin(time * 2 + i) * 0.05;
+} else {
+    mesh.scale.lerp(
+        new THREE.Vector3(0.8, 0.8, 0.8),
+        0.1
+    );
+    mesh.rotation.z = 0;
+}
+
                 });
                 selectedIndex = bestIdx;
 
